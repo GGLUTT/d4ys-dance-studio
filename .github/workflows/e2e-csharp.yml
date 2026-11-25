@@ -1,0 +1,40 @@
+name: E2E C# (Playwright)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "e2e-tests-csharp/**"
+      - ".github/workflows/e2e-csharp.yml"
+  schedule:
+    - cron: "0 7 * * 1"
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: e2e-tests-csharp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: dotnet build
+
+      - name: Install Playwright browser
+        run: pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run tests
+        run: dotnet test --no-build --logger "console;verbosity=normal"
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: e2e-tests-csharp/bin/Debug/net8.0/artifacts
